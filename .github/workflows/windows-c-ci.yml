@@ -1,0 +1,53 @@
+name: Windows C CI Demo
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows-c-build-and-test:
+    name: Build And Test On Windows
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Configure MSVC build environment
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Prepare Windows build directory
+        shell: cmd
+        run: scripts\ci_windows.bat prepare
+
+      - name: Build vehicle C demo
+        shell: cmd
+        run: scripts\ci_windows.bat build
+
+      - name: Run vehicle scenario tests
+        shell: cmd
+        run: scripts\ci_windows.bat test
+
+      - name: Run vehicle demo executable
+        shell: cmd
+        run: scripts\ci_windows.bat demo
+
+      - name: Generate CI summary
+        shell: pwsh
+        run: |
+          cmd /c scripts\ci_windows.bat summary
+          Get-Content build\reports\ci_summary.md | Out-String | Add-Content $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload CI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vehicle-cicd-demo-windows-artifacts
+          path: |
+            build\vehicle_demo.exe
+            build\vehicle_tests.exe
+            build\logs\build.log
+            build\logs\test.log
+            build\logs\run_demo.log
+            build\reports\ci_summary.md
+          if-no-files-found: error
